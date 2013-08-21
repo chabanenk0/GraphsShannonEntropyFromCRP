@@ -1,15 +1,15 @@
-# РџРµСЂРµРґ Р·Р°РїСѓСЃРєРѕРј РЅСѓР¶РЅРѕ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ СЌС‚Рё 3 РїР°РєРµС‚Р° Р·Р°РїСѓСЃРєРѕРј РєРѕРјР°РЅРґ:
+# Перед запуском нужно установить эти 3 пакета запуском команд:
 # install.packages("sna")
 # install.packages("QuACN")
 # install.packages("fNonlinear")
-# РџР°РєРµС‚С‹ graph РЅСѓР¶РЅРѕ СЃРєР°С‡Р°С‚СЊ РІСЂСѓС‡РЅСѓСЋ РёР· http://www.bioconductor.org/packages/release/bioc/html/graph.html
+# Пакеты graph нужно скачать вручную из http://www.bioconductor.org/packages/release/bioc/html/graph.html
 # http://www.bioconductor.org/packages/2.12/bioc/html/RBGL.html
 # http://www.bioconductor.org/packages/2.12/bioc/html/BiocGenerics.html
-# РђСЂС…РёРІС‹ С‚Р°РєР¶Рµ СЃРѕС…СЂР°РЅРµРЅС‹ РІ РїР°РїРєРµ RequiredStrangePackages
-# Рё СѓСЃС‚Р°РЅРѕРІРёС‚СЊ РєРѕРјР°РЅРґРѕР№:
+# Архивы также сохранены в папке RequiredStrangePackages
+# и установить командой:
 # install.packages(file.choose(), repos=NULL)
-# СѓРєР°Р·Р°РІ РїСѓС‚СЊ Рє Р·РёРї-С„Р°Р№Р»Сѓ РїР°РєРµС‚Р°.
-# (c) Р“РѕР»РѕРІР°РЅСЊ РћР»СЊРіР°
+# указав путь к зип-файлу пакета.
+# (c) Головань Ольга
 
 library(sna)
 library(QuACN)
@@ -75,6 +75,69 @@ function(x, m, d, end.time, eps, nt = 10, doplot = TRUE, ...)
     return (res)
 }
 
+LacasaAdjMatrix =
+function(x, end.time, doplot = TRUE, ...)
+{   # A function implemented by Diethelm Wuertz
+
+    # Description:
+    #   Creates an adjancency matrix for Lacasa visibility method
+
+    # Arguments
+    #   x - time series
+    #   end.time - ending time (as no. of observations)
+    #   ... - further parameters to be passed to plot
+
+    # Settings:
+    if (class(x) == "timeSeries") x = as.vector(x)
+    series = as.ts(x)
+    # w = (0:(m-1))*d
+    .visib = function(i, j) {
+     a1=(series[j]-series[i])/(j-i)
+     a0=series[i]-a1*i
+     if (i+1<j)
+     for (ii in seq(i+1,j-1,by=1))
+     { 
+       if (series[ii]>a0+ii*a1)
+        {
+         return (-1)
+        } 
+     }
+     return (1)
+    }
+
+    #.checkEmbParms(series, m, d)
+    #if (eps <= 0) stop("eps must be positive")
+    nt = 1 # as.integer(nt)
+    # if (nt<=0) nt = 1
+    # n = length(series)-(m-1)*d
+    if(end.time > n) end.time = n
+    # eps = eps^2
+    # xyz = .embeddPSR(series, m = m, d = d)[1:end.time, ]
+
+    # Plot:
+    if (doplot)  {
+        plot(0, xlim = c(0, end.time), ylim = c(0, end.time), type = "n",
+            main = "Recurrence Plot", xlab = "i", ylab = "j")}
+        res=matrix(0,end.time,end.time)
+        for(i in seq(1, end.time, by = nt))
+            for(j in seq(i,end.time, by = nt))
+                if(.visib(i,j) > 0) 
+                 {
+                  if (doplot) points(c(i, j), c(j, i), ...)
+                  res[i,j]=1
+                  res[j,i]=1}
+                else
+                 {res[i,j]=0
+                  res[j,i]=0}
+               # }
+    #}
+    # Return Value:
+    # invisible()
+    return (res)
+}
+
+
+
 graphEntropy <- function(adj, type="SoleValverde") {
   if (type == "SoleValverde") {
     return(graphEntropySoleValverde(adj))
@@ -137,20 +200,21 @@ graphEntropyWang <- function(adj) {
 
 
 
-#y <- read.table("/Users/РђРЅРґСЂРµР№/Dropbox/SolovievChabCommonFolder/CrpNetwork/ux_04.txt")
+#y <- read.table("/Users/Андрей/Dropbox/SolovievChabCommonFolder/CrpNetwork/ux_04.txt")
 # y <- read.table("/dropboxfolder/Dropbox/SolovievChabCommonFolder/CrpNetwork/ux_04_sh.txt")
-y <- read.table("dax_04.txt")
+y <- read.table("ux_04.txt")
 
 y=t(y)
 wind=500
-m=1  #   m - embedding dimension
+m=1	#   m - embedding dimension
 d=1 	#   d - time delay
+graph_type=2 # 1 - crp, 2 - visibility
 end.time=wind    	#   end.time - ending time (as no. of observations)
 eps=0.1    	#   eps - neighbourhood threshold
 nt=1    	#   nt - observations in each step
-#logfile="/Users/РђРЅРґСЂРµР№/Dropbox/SolovievChabCommonFolder/ux_04_sh_logsR.txt"
+#logfile="/Users/Андрей/Dropbox/SolovievChabCommonFolder/ux_04_sh_logsR.txt"
 #logfile="/dropboxfolder/Dropbox/SolovievChabCommonFolder/CrpNetwork/ux_04_logsR_2.txt"
-logfile="dax_04_crp_logsR_2.txt"
+logfile="ux_04_lacasa_logsR_2.txt"
 
 
 n=length(y)
@@ -162,7 +226,7 @@ close(fileConn)
 
 
 
-for (i in seq(461,n-wind,by=10)) #n-wind)
+for (i in seq(1,n-wind,by=10)) #n-wind)
 {
  print (i)
  y_fragm=y[1,i:(i+wind)]
@@ -170,7 +234,14 @@ for (i in seq(461,n-wind,by=10)) #n-wind)
  stand_dev=sd(y_fragm)
  y_fragm=(y_fragm-meanvalue)/stand_dev
  # plot(y_fragm) 
- adj = recurrencePlotNew(y_fragm,m,d,end.time,eps,nt,doplot=FALSE)
+ # graph_type= 2 # 1 - crp, 2 - visibility
+ if (graph_type==1)
+  { adj = recurrencePlotNew(y_fragm,m,d,end.time,eps,nt,doplot=FALSE)
+  }
+ else 
+  {
+  adj = LacasaAdjMatrix (y_fragm,end.time,doplot=FALSE)
+  }
  graphnelg=as(adj,"graphNEL")
  ge = graphEntropy (adj)
  wien = wiener(graphnelg)
